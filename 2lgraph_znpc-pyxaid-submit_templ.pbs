@@ -1,0 +1,62 @@
+#!/bin/bash  --login
+#SBATCH --job-name=job0
+#SBATCH --nodes 8
+#SBATCH --ntasks 320
+#SBATCH --time 72:00:00
+#SBATCH --account=SCW1183
+# SBATCH -p compute
+#SBATCH --output job
+
+cd $SLURM_SUBMIT_DIR
+
+# latest intel compilers, mkl and intel-mpi
+   module load raven
+   module load pyxaid/6b1088
+   module load QuantumEspresso/6.1
+   module load mpi/intel/2017/7
+   module load compiler/intel/2017/4
+
+
+# Setup all manual parameters here
+# Must be ABSOLUTE paths
+NP=320
+exe_qespresso=pw.x
+exe_export=pw_export.x
+exe_convert=iotk
+res=/scratch/c.sacss11/hmah/jobs/g_znpc/pyxaid/step2/res
+
+# These will be assigned automatically, leave them as they are
+param1=
+param2=
+
+minband=467
+vband=482
+maxband=497
+
+# This is invocation of the scripts which will further handle NA-MD calclculations
+# on the NAC calculation step
+python -c "from PYXAID import *
+params = { }
+params[\"NP\"]=$NP
+params[\"EXE\"]=\"$exe_qespresso\"
+params[\"EXE_EXPORT\"]=\"$exe_export\"
+params[\"EXE_CONVERT\"] =\"$exe_convert\"
+params[\"start_indx\"]=$param1
+params[\"stop_indx\"]=$param2
+params[\"wd\"]=\"wd_test\"
+params[\"rd\"]=\"$res\"
+params[\"minband\"]=$minband
+params[\"nocc\"]=$vband
+params[\"maxband\"]=$maxband
+params[\"nac_method\"]=0
+params[\"wfc_preprocess\"]=\"complete\"
+params[\"do_complete\"]=1
+params[\"prefix0\"]=\"x0.scf\"
+params[\"prefix1\"]=\"x1.scf\"
+params[\"compute_Hprime\"]=0
+print params
+runMD1.runMD(params)
+"
+
+
+
