@@ -21,4 +21,4 @@ This repository includes all input files created and used for NAMD study of elec
 
 10-files named 2lgraph_znpc-pyxaid-setp2-py-src2.py and 2lgraph_znpc-pyxaid-setp2-submit_temple are used to perform step2, hamiltonian construction for each MD step for ZnPc/double-layer graphene interface
 
-11-
+11-files named graph_znpc-pyxaid-step3-py-scr3.py and 2lgraph_znpc-pyxaid-step3-py-scr3.py do the step3 of namd calculations for ZnPc/singel-layer graphene and ZnPc/double-layer graphene, respectively
