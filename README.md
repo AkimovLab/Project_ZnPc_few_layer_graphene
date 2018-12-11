@@ -16,3 +16,9 @@ This repository includes all input files created and used for NAMD study of elec
 7-The file named 2lgraph_znpc.60r.3k.thnr8 is an input QE file job which does dynamics for optimized ZnPc/double-layer graphene interface.
 
 8-files named graphene.xyz, graph_znpc.xyz and 2dgraph_znpc.xyz are cordinates of relaxed graphen, znpc/single-layer graphene and znpc/double-layer graphene, respectively.
+
+9-files named graph_znpc-pyxaid-setp2-py-src2.py and 2lgraph_znpc-pyxaid-setp2-submit_temple are used to perform step2, hamiltonian construction for each MD step for ZnPc/single-layer graphene interface
+
+10-files named 2lgraph_znpc-pyxaid-setp2-py-src2.py and 2lgraph_znpc-pyxaid-setp2-submit_temple are used to perform step2, hamiltonian construction for each MD step for ZnPc/double-layer graphene interface
+
+11-
