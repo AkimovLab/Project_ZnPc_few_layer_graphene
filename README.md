@@ -15,4 +15,4 @@ This repository includes all input files created and used for NAMD study of elec
 
 7-The file named 2lgraph_znpc.60r.3k.thnr8 is an input QE file job which does dynamics for optimized ZnPc/double-layer graphene interface.
 
-8-
+8-files named graphene.xyz, graph_znpc.xyz and 2dgraph_znpc.xyz are cordinates of relaxed graphen, znpc/single-layer graphene and znpc/double-layer graphene, respectively.
