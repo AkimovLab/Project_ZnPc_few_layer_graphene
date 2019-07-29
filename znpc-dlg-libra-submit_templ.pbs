@@ -1,0 +1,59 @@
+#!/bin/bash
+#PBS -l select=8:ncpus=8:mpiprocs=16
+#PBS -P PR272
+#PBS -N job0
+#PBS -l walltime=72:00:00
+#PBS -q workq
+#PBS -m abe
+#PBS -M hamid11062@yahoo.com
+
+# latest intel compilers, mkl and intel-mpi
+#   module load pyxaid/6b1088
+   module load QuantumEspresso/5.2
+   module load mpi/intel.4.1.3.048
+   module load compiler/intel-15.0
+
+# Must be Absolute paths
+NP = 64
+exe_qespresso=/software/materials/QuantumEspresso/5.2/intel-15.0/intel.4.1.0/bin/pw.x
+exe_export=/software/materials/QuantumEspresso/5.2/intel-15.0/intel.4.1.0/bin/pw_export.x
+exe_convert=/software/materials/QuantumEspresso/5.2/intel-15.0/intel.4.1.0/bin/iotk
+res=/home/sacss11/scratch/sacss11/hmah/jobs/g_znpc/libra/dlg/step2/res
+
+# These will be assigned automatically, leave them as they are
+param1=
+param2=
+
+minband=475
+vband=482
+maxband=490
+
+
+cd $PBS_O_WORKDIR
+echo $PBS_O_WORKDIR
+
+
+# This is invocation of the scripts which will further handle NA-MD calclculations
+# on the NAC calculation step
+python -c "from libra_py.workflows.nbra import step2
+params = { }
+params[\"NP\"]= 64
+params[\"BATCH_SYSTEM\"]=\"mpirun\"
+params[\"EXE\"]=\"$exe_qespresso\"
+params[\"EXE_EXPORT\"]=\"$exe_export\"
+params[\"EXE_CONVERT\"] = \"$exe_convert\"
+params[\"start_indx\"]=\"$param1\"
+params[\"stop_indx\"]=\"$param2\"
+params[\"wd\"]=\"wd\"
+params[\"rd\"]=\"$res\"
+params[\"dt\"]= 41.34145
+params[\"minband\"]= 475
+params[\"nocc\"]= 482
+params[\"maxband\"]= 490
+params[\"nac_method\"]=0
+params[\"\orthogonalize\"] =0
+params[\"prefix0\"]=\"x0.scf\"
+params[\"compute_Hprime\"]=1
+print params
+step2.run(params)
+"
