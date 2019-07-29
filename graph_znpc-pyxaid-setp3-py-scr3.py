@@ -1,178 +1,187 @@
-from PYXAID import *
 import os
+import sys
+import math
+import copy
 
-#############################################################################################
-# Input section: Here everything can be defined in programable way, not just in strict format
-#############################################################################################
+if sys.platform=="cygwin":
+    from cyglibra_core import *
+elif sys.platform=="linux" or sys.platform=="linux2":
+    from liblibra_core import *
+
+from libra_py import units
+from libra_py import hpc_utils
+from libra_py import data_read
+from libra_py import data_outs
+from libra_py import data_conv
+from libra_py import QE_methods
+import libra_py.workflows.nbra.step3 as step3
+import libra_py.workflows.nbra.step4 as step4
+import libra_py.workflows.nbra.decoherence_times as decoherence_times
+from libra_py import data_conv
+from libra_py import fit
+from libra_py import influence_spectrum as infsp
+from libra_py import data_stat
+
+# Remove the previous results and temporary working directory from the previous runs
+os.system("rm -r traj1_out_pyxaid")
+
+# Create the new results directory
+os.system("mkdir traj1_out_pyxaid")
+
+# read in the files
+# In my case, the files contain 22 x 22 matrices, which are composed of 11 x 11 blocks of alpha and beta orbitals.
+# In this set of spin-orbitals, the orbital with index 5 is the alpha-HOMO.
+# Assume we only need HOMO-1, HOMO, LUMO and LUMO+1 alpha-spin orbitals,
+#  so we can define this by setting the "active_space" parameter to the list [4, 5, 6, 7]
+
+ham_dir = "/home/mahdipor_hamid.physics.sharif/jobs/g_znpc/libra/slg/step2/res-lib-slg-p/"
+params = { "data_set_paths" : [ham_dir],
+           "data_dim":22, "active_space":[3,4,5,6,7,8,9],
+           "isnap":0,  "fsnap":5997,           
+           "data_re_prefix" : "S_dia_ks_", "data_re_suffix" : "_re",
+           "data_im_prefix" : "S_dia_ks_", "data_im_suffix" : "_im"          
+         }
+S = data_read.get_data_sets(params)
+
+params.update({ "data_re_prefix" : "St_dia_ks_", "data_re_suffix" : "_re",
+                "data_im_prefix" : "St_dia_ks_", "data_im_suffix" : "_im"  } ) 
+St = data_read.get_data_sets(params)
+ 
+params.update({ "data_re_prefix" : "hvib_dia_", "data_re_suffix" : "_re",
+                "data_im_prefix" : "hvib_dia_", "data_im_suffix" : "_im"  } ) 
+Hvib_ks = data_read.get_data_sets(params)
+
+
+# How, the KS orbitals are re-indexed as:
+# 3 ZnPc (H-2)  -> 1
+# 4   G  (H-1)  -> 2
+# 5   G   (H)   -> 3
+# 6   G   (L)   -> 4
+# 7   G  (L+1)  -> 5
+# 8 ZnPc (L+2)  -> 6
+# 9 ZnPc (L+3)  -> 7
+
+# Define SD bases -indexing here begings from 1
+params.update( { "SD_basis" : [ 
+                           # Omega 3 electron transfer
+                                 # S0:1 -> 4        
+                          [ 1, 2, -2, 3, -3, -4],
+                                 # S1:1 -> 5
+                          [ 1, 2, -2, 3, -3, -5],
+                           # Omega 4 initial excited
+                                 # S2:1 -> 6
+                          [ 1, 2, -2, 3, -3, -6],
+                                 # S3:1 -> 7
+                          [ 1, 2, -2, 3, -3, -7],
+                         ],
+                } )
+CI_basis = []
+SD_energy_corr = [0.0]*len(params["SD_basis"])
+for i in xrange(len(params["SD_basis"])):
+     
+    CI_basis.append( [] )
+
+    for j in xrange(len(params["SD_basis"])):
+
+        if i == j:
+           CI_basis[i].append(1.0)
+        else:
+           CI_basis[i].append(0.0)
+
+params.update( { "CI_basis": CI_basis,
+                 "SD_energy_corr": SD_energy_corr,
+             } )
+          
+# Update parameters
+params.update( { "output_set_paths" : [os.getcwd()+"/traj1_out_pyxaid/"],
+                 "dt" : 1.0*units.fs2au,
+                 "do_orthogonalization" : 1,   # 1
+                 "do_state_reordering" : 2,   # 2
+                 "state_reordering_alpha": 0.0,
+                 "do_phase_correction" : 1,   # 1
+                 "do_output" : 1,
+                 "Hvib_re_prefix":"Hvib_",  "Hvib_re_suffix":"_re",
+                 "Hvib_im_prefix":"Hvib_",  "Hvib_im_suffix":"_im",
+              }  )
+
+Hvib = step3.run(S, St, Hvib_ks, params)
+
+
+# rescaling the SD NACs corresponding to the shifts of ZnPc's energy levels
+data_conv.scale_NAC(Hvib, 0, 2, 0.70/0.30) # - rescale NAC between Phi_0 and Phi_2
+data_conv.scale_NAC(Hvib, 2, 0, 0.70/0.30) # - rescale NAC between Phi_0 and Phi_2
+data_conv.scale_NAC(Hvib, 0, 3, 0.80/0.40) # - rescale NAC between Phi_0 and Phi_3
+data_conv.scale_NAC(Hvib, 3, 0, 0.80/0.40) # - rescale NAC between Phi_0 and Phi_3
+data_conv.scale_NAC(Hvib, 1, 2, 0.60/0.20) # - rescale NAC between Phi_1 and Phi_2
+data_conv.scale_NAC(Hvib, 2, 1, 0.60/0.20) # - rescale NAC between Phi_1 and Phi_2
+data_conv.scale_NAC(Hvib, 1, 3, 0.70/0.30) # - rescale NAC between Phi_1 and Phi_3 
+data_conv.scale_NAC(Hvib, 3, 1, 0.70/0.30) # - rescale NAC between Phi_1 and Phi_3
+
+data_conv.scale_NACs(Hvib, 1.053) # this rescaling (of NACs) is performed as the SLG did get thermalized aroung 260-280K rather than 300K 
+
+# shifting the energy levels
+data_conv.scissor(Hvib, 0, -1.00/27.2114) # all SD state energies are lowered by -1.06 eV as a result of lowering energy of ZnPc's H state by -1.06 eV
+data_conv.scissor(Hvib, 2, -0.40/27.2114) # energies of  2 and 3 SD states are lowered more by -0.33 eV as a result of lowering energies of ZnPc's L and L+1 states by -0.33 eV 
+
+# Compute tNAC map
+opt = 2
+Hvib_ave = data_stat.cmat_stat2(Hvib[0], opt)
+data_outs.show_matrix_splot((1000.0/units.ev2Ha)*Hvib_ave.imag(), "_tnac_61_pc1sr1.txt", set_diag_to_zero=0)
+
+#  calculations of the decoherence times
+
+tau, rates = decoherence_times.decoherence_times_ave(Hvib, [0], params["fsnap"], 0)
+avg_deco = tau*units.au2fs
+avg_deco.show_matrix()
+
+# Compute average band gap:
+# avg_gap = decoherence_times.energy_gaps_ave(Hvib, [0], nsteps)
+
+# 5. Nonadiabatic Dynamics
 params = {}
 
-# Define general control parameters (file names, directories, etc.)
-# Path to Hamiltonians
-# These paths must direct to the folder that contains the results of
-# the step2 calculations (Ham_ and (optinally) Hprime_ files) and give
-# the prefixes and suffixes of the files to read in
-rt = "/home/sacss11/scratch/sacss11/hmah/jobs/g_znpc/pyxaid/step2" 
-params["Ham_re_prefix"] = rt+"/res/0_Ham_"
-params["Ham_re_suffix"] = "_re"
-params["Ham_im_prefix"] = rt+"/res/0_Ham_"
-params["Ham_im_suffix"] = "_im"
-# params["Hprime_x_prefix"] = rt + "/res/0_Hprime_"
-# params["Hprime_x_suffix"] = "x_re"
-# params["Hprime_y_prefix"] = rt + "/res/0_Hprime_"
-# params["Hprime_y_suffix"] = "y_re"
-# params["Hprime_z_prefix"] = rt + "/res/0_Hprime_"
-# params["Hprime_z_suffix"] = "z_re"
-params["energy_units"] = "Ry"                # This specifies the units of the Hamiltonian matrix elements as they
-                                             
-                                             # are written in Ham_ files. Possible values: "Ry", "eV"
+params["nfiles"] = 5997 # ex # of Hvib files to read for a given traj
 
-# Set up other simulation parameters:
-# Files and directories (apart from the Ham_ and Hprime_)
-params["scratch_dir"] =  os.getcwd()+"/out"  # Hey! : you need to create this folder in the current directory
-                                             # This is were all (may be too many) output files will be written
-params["read_couplings"] = "batch"           # How to read all input (Ham_ and Hprime_) files. Possible values:
-                                             # "batch", "online"
-
-# Simulation type
-params["runtype"] = "namd"                   # Type of calculation to perform. Possible values:
-                                             # "namd" - to do NA-MD calculations, "no-namd"(or any other) - to
-                                             # perform only pre-processing steps - this will create the files with
-                                             # the energies of basis states and will output some useful information,
-                                             # it may be particularly helpful for preparing your input
-params["decoherence"] = 1                    # Do you want to include decoherence via DISH? Possible values:
-                                             # 0 - no, 1 - yes
-params["is_field"] = 0                       # Do you want to include laser excitation via explicit light-matter
-                                             # interaction Hamiltonian? Possible values: 0 - no, 1 - yes
-
-# Integrator parameters
-params["elec_dt"] = 0.01                      # Electronic integration time step, fs
-params["nucl_dt"] = 1.0                      # Nuclear integration time step, fs (this parameter comes from 
-                                             # you x.md.in file)
-params["integrator"] = 0                     # Integrator to solve TD-SE. Possible values: 0, 10,11, 2
-
-# NA-MD trajectory and SH control 
-params["namdtime"] = 1499                    # Trajectory time, fs
-params["num_sh_traj"] = 1000                 # Number of stochastic realizations for each initial condition
-params["boltz_flag"] = 1                     # Boltzmann flag (set to 1 anyways)
-params["Temp"] = 300.0                       # Temperature of the system
-params["alp_bet"] = 1                        # How to treat spin. Possible values: 0 - alpha and beta spins are not
-                                             # coupled to each other, 1 - don't care about spins, only orbitals matter
-
-params["debug_flag"] = 0                     # If you want extra output. Possible values: 0, 1, 2, ...
-                                             # as the number increases the amount of the output increases too
-                                             # Be carefull - it may result in a huge output!
-print "after time and temperature setting"
-# Parameters of the field (if it is included)
-params["field_dir"] = "xyz"                 # Direction of the field. Possible values: "x","y","z","xy","xz","yz","xyz"
-params["field_protocol"] = 1                # Envelope function. Possible values: 1 - step function, 2 - saw-tooth
-params["field_Tm"] = 25.0                   # Middle of the time interval during which the field is active
-params["field_T"] = 25.0                    # The period (duration) of the field pulse
-params["field_freq"] = 3.0                  # The frequency of the field radiation = energy of the photons
-params["field_freq_units"] = "eV"           # Units of the above quantity. Possible values: "eV", "nm","1/fs","rad/fs"
-params["field_fluence"] = 1.0               # Defines the light radiation intensity (fluence), mJ/cm^2
+for i in [0, 2, 3]:
+    for j in [2, 3]:
+        
 
 
-print "after the field setting"
-# Define states:
-# Example of indexing convention with Nmin = 5, HOMO = 5, Nmax = 8
-# the orbitals indices are consistent with QE (e.g. PP or DOS) indexing, which starts from 1
-# [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] - all computed orbitals
-# [ 1, 2, 3, 4, 5]                     - occupied orbitals
-#                 [6, 7, 8, 9, 10, 11] - unoccupied orbitals
-#              [5, 6, 7, 8]            - active space
+        params["nstates"] = 4                 # Ex set equal to the total # of states. indexing here begins from 1
 
-# HOMO-4 (G)    = 12
-# HOMO-3 (ZnPc) = 13
-# HOMO-2(ZnPc)  = 14
-# HOMO-1 (G)    = 15
-# HOMO   (G)    = 16
-# LUMO   (G)    = 17
-# LUMO+1 (G)    = 18
-# LUMO+2 (ZnPc) = 19
-# LUMO+3 (ZnPc) = 20
+        # General simulation parameters
+        params["T"] = 300.0                   # Temperature, in K
+        params["ntraj"] = 1000                 #number of stochatsic trajectories 
+        # TSH:
+        params["sh_method"] = 1               # 0 - MSSH, 1 - FSSH
+        params["decoherence_method"] = i      # 0 (no), 1 (ID-A), 2 (mSDM), 3 (DISH)
+        params["dt"] = 1.0*units.fs2au        # Nuclear dynamics integration timestep. in a.u.
+        params["nsteps"] = 4000               # can not be larger than len(Hvib)
+        params["Boltz_opt"] = 1               # options: 0 (no), 1 (Pyxaid), 2 (Classical), 3 (N-state Boltzmann)
+        
+        # Set initial Electronic states
+        params["istate"] = j               # indexing here begins from 0, the last is 16
+        
+        # Set initial Times
+        init_times = []
+        for k in xrange(20):
+            init_times.append(k*50+1000)
+        params["init_times"] = init_times  # starting points for sub-trajectories
+       
+        # Set  output file
+        params["outfile"] = "_out_"+str(params["decoherence_method"])+"_"+str(params["istate"])+".txt"   # output file
 
-# Set active space and the basis states
-params["active_space"] = [12,13,14,15,16,17,18,19,20]
-print "active sapce defined"
-# Generate basis states
-params["states"] = []
-params["states"].append(["GS",[12,-12,13,-13,14,-14,15,-15,16,-16]])   # index 0   ground state
-params["states"].append(["S1",[12,13,-13,14,-14,15,-15,16,-16,-17]])   # index 1    H-4->L
-params["states"].append(["S2",[12,13,-13,14,-14,15,-15,16,-16,-18]])   # index 2    H-4->L+1
-params["states"].append(["S3",[12,-12,13,14,-14,15,-15,16,-16,-17]])   # index 3    H-3->L
-params["states"].append(["S4",[12,-12,13,14,-14,15,-15,16,-16,-18]])   # index 4    H-3->L+1
-params["states"].append(["S5",[12,-12,13,-13,14,15,-15,16,-16,-17]])   # index 5    H-2->L
-params["states"].append(["S6",[12,-12,13,-13,14,15,-15,16,-16,-18]])   # index 6    H-2->L+1
-params["states"].append(["S7",[12,-12,13,-13,14,-14,15,16,-16,-17]])   # index 7    H-1->L
-params["states"].append(["S8",[12,-12,13,-13,14,-14,15,16,-16,-18]])   # index 8    H-1->L+1
-params["states"].append(["S9",[12,-12,13,-13,14,-14,15,-15,16,-17]])   # index 9    H-0->L
-params["states"].append(["S10",[12,-12,13,-13,14,-14,15,-15,16,-18]])  # index 10   H-0->L+1
-params["states"].append(["S11",[12,13,-13,14,-14,15,-15,16,-16,-19]])  # index 11   H-4->L+2
-params["states"].append(["S12",[12,13,-13,14,-14,15,-15,16,-16,-20]])  # index 12   H-4->L+3
-params["states"].append(["S13",[12,-12,13,14,-14,15,-15,16,-16,-19]])  # index 13   H-3->L+2
-params["states"].append(["S14",[12,-12,13,14,-14,15,-15,16,-16,-20]])  # index 14   H-3->L+3
-params["states"].append(["S15",[12,-12,13,-13,14,15,-15,16,-16,-19]])  # index 15   H-2->L+2
-params["states"].append(["S16",[12,-12,13,-13,14,15,-15,16,-16,-20]])  # index 16   H-2->L+3
-params["states"].append(["S17",[12,-12,13,-13,14,-14,15,16,-16,-19]])  # index 17   H-1->L+2
-params["states"].append(["S18",[12,-12,13,-13,14,-14,15,16,-16,-20]])  # index 18   H-1->L+3
-params["states"].append(["S19",[12,-12,13,-13,14,-14,15,-15,16,-19]])  # index 19   H-0->L+2
-params["states"].append(["S20",[12,-12,13,-13,14,-14,15,-15,16,-20]])  # index 20   H-0->L+3
+        # For running NA-MD
+#        Hvib = step4.get_Hvib2(params)      # get the Hivib for all data stes. Hvib is a list of lists
+        
+        # Compute avergae band gap:
+        # avg_gap = decoherence_times.energy_gaps_av(Hvib, params["init_times"], params["nsteps"])
 
+        # Apply rigid energy shift to data
+        # data_con.scissor(Hvib, 1, shift)
 
+        # Optional: Print decoherence times
+        
+        # Run NA-MD
+        res = step4.run(Hvib, params)
 
-# Initial conditions
-nmicrost = len(params["states"])
-ic = []
-i = 0
-while i<100:
-    j = 11
-    while j<nmicrost:
-        ic.append([25*i,j])
-        j = j + 1
-    i = i + 1
-
-params["iconds"] = ic
-
-# Scale NACs
-# Below is a small snippet that scales all NACs by 1.0350983 (so no practical effect)
-nmicrost = len(params["states"]) # number of (micro)states
-params["nac_scale"] = []
-for i in range(0,nmicrost):
-    for j in range(0,nmicrost):
-        params["nac_scale"].append([i,j,1.0350983])
-
-
-# Execution section: Here we actually start the NA-MD calculations and the analysis
-#############################################################################################
-
-############ Run calculations ######################
-print params                   # print out all simulation parameters first
-pyxaid_core.info().version()
-pyxaid_core.namd(params)
-
-########### Below we will be using the average.py module ########
-# Note: If you want to re-run averaging calculations - just comment out the line
-# calling namd() functions (or may be some other unnecessary calculations)
-
-Nstates = len(params["states"])  # Total number of basis states
-inp_dir = os.getcwd()+"/out"     # this is the directory containing the input for this stage
-                                 # it is the directory where pyxaid_core.namd() has written all
-                                 # it output (raw output)
-opt = 12                          # Defines the type of the averaging we want to do. Possible values:
-                                 # 1 - average over intial conditions, independnetly for each state
-                                 # 2 - sum the averages for groups of states (calculations with opt=1 must
-                                 # already be done). One can do this for different groups of states without 
-                                 # recomputing initial-conditions averages - they stay the same
-                                 # 12 - do the steps 1 and 2 one after another
-
-# Define the groups of states for which we want to know the total population as a function of time
-MS = []
-for i in range(0,Nstates):
-    MS.append([i])   # In our case - each group of states (macrostate) contains only a single basis configuration
-                     # (microstate)
-
-res_dir = os.getcwd()+"/macro"  # Hey! : you need to create this folder in the current directory
-                                # This is where the averaged results will be written
-
-# Finally, run the averaging
-# average.average(params["namdtime"],Nstates,params["iconds"],opt,MS,inp_dir,res_dir)
