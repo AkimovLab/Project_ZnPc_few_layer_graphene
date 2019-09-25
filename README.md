@@ -22,3 +22,6 @@ This repository includes all input files created and used for NAMD study of elec
 10-files named znpc-dlg-libra-setp2-py-src2.py and znpc-dlg-pyxaid-setp2-submit_temple are used to perform step2, hamiltonian construction for each MD step for ZnPc/double-layer graphene interface
 
 11-files named znpc-slg-libra-step3&4-py-scr3.py and znpc-dlg-libra-step3&4-py-scr3.py do the step3 of namd calculations for ZnPc/singel-layer graphene and ZnPc/double-layer graphene, respectively
+
+12-files named "znpcslgdft.xyz", "znpcdlgdft.xyz", are the relaxed geometries of ZnPc/SLG and ZnPc/DLG systems, respectively, using pure DFT method.
+
