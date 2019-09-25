@@ -25,3 +25,4 @@ This repository includes all input files created and used for NAMD study of elec
 
 12-files named "znpcslgdft.xyz", "znpcdlgdft.xyz", are the relaxed geometries of ZnPc/SLG and ZnPc/DLG systems, respectively, using pure DFT method.
 
+13-file named znpcslgdftu-'element'.xyz contains relaxed geometry of ZnPc/SLG interface using DFT+U method for 'element'.
