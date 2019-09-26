@@ -1,0 +1,13 @@
+&inputpp
+  prefix = 'x0',
+  outdir = './',
+  pseudo_dir = '/home/sacss11/scratch/sacss11/hmah/jobs/g_znpc/pp',
+  psfile(1) = 'Zn.pbe-d-hgh.UPF',
+  psfile(2) = 'N.pbe-hgh.UPF',
+  psfile(3) = 'C.pbe-hgh.UPF',
+  psfile(4) = 'H.pbe-hgh.UPF',
+  single_file = .FALSE.,
+  ascii = .TRUE.,
+  uspp_spsi = .FALSE.,
+/
+

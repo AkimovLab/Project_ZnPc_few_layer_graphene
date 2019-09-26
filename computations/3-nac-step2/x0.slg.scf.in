@@ -1,0 +1,45 @@
+&CONTROL
+                 calculation = 'scf' ,
+                      outdir = './' ,
+                      wfcdir = './' ,
+                  pseudo_dir = '/home/sacss11/scratch/sacss11/hmah/jobs/g_znpc/pp' ,
+                      prefix = 'x0' ,
+                  wf_collect = .true. ,
+/
+ &SYSTEM
+                       ibrav = 0 ,
+                         nat = 153,
+                        ntyp = 4,
+                     ecutwfc = 60.0 ,
+                        nbnd = 300 ,
+                 occupations = 'smearing' ,
+                     degauss = 0.005 ,
+                    smearing = 'gauss' ,
+                  lda_plus_u = .true. ,
+             lda_plus_u_kind = 0 ,
+                Hubbard_U(1) = 3.0 ,
+                Hubbard_U(2) = 0 ,
+                Hubbard_U(3) = 0 ,
+                    vdw_corr = 'DFT-D2' ,
+                   london_s6 = 0.75 ,
+                 london_rcut = 200 ,
+ /
+ &ELECTRONS
+            electron_maxstep = 300 ,
+                   conv_thr  = 1.D-7 ,
+                 mixing_beta = 0.7 ,
+                 mixing_mode = 'local-TF' ,
+!                 startingwfc = 'atomic+random' ,
+/
+ ATOMIC_SPECIES
+   Zn   65.39000   Zn.pbe-d-hgh.UPF
+    N   14.00674   N.pbe-hgh.UPF
+    C   12.0107    C.pbe-hgh.UPF 
+    H   1.00794    H.pbe-hgh.UPF
+CELL_PARAMETERS (angstrom)
+  14.760000000  -0.000000000   0.000000000
+  -0.000000000  17.04000000   0.000000000
+   0.000000000   0.000000000  20.000000000
+
+K_POINTS gamma
+
