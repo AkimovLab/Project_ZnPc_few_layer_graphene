@@ -6,4 +6,4 @@
 
 3-nac-step2: python-base libra/pyxaid and QE files to perform the step2 (NAC calculation)
 
-4-NA-MD: znpc-dlg-libra-setp3&4-py-scr3.py - script for electron transfer at ZnPc/SLG. znpc-dlg-libra-setp3&4-py-scr3.py: script for electron transfer at ZnPc/DLG
+4-NA-MD: znpc-dlg-libra-setp3&4-py-scr3.py - script for electron transfer at ZnPc/SLG. znpc-dlg-libra-setp3&4-py-scr3.py: script for electron transfer at ZnPc/DLG. The results of running these scripts. The names of the result files indicate where in the manuscript (figure) the results are displayed.
