@@ -29,4 +29,4 @@ This repository includes all input files created and used for NAMD study of elec
 
 14-files named "NAC-slg/dlg-pc?/pc?-figS12" contains the NAC data used to plot fig S12 of ESI and fig. 8 of the main text.
 
-15-
+15-files names "dlg-energy vs time" contains the time evolution of energy data used to plot fig S9.
