@@ -117,6 +117,9 @@ params.update( { "output_set_paths" : [os.getcwd()+"/traj1_out_pyxaid/"],
 
 Hvib = step3.run(S, St, Hvib_ks, params)
 
+# To make the shift and rescaling not working just uncomment """ before and after rescaling lines
+# """  # to switch on and off the shifting/rescaling
+
 # rescaling of NACs of pairs of SD states corresponding to the shift of ZnPc's energy levels
 data_conv.scale_NAC(Hvib, 0, 2, 0.20/0.50) # - rescale NAC between Phi_0 and Phi_2
 data_conv.scale_NAC(Hvib, 2, 0, 0.20/0.50) # - rescale NAC between Phi_0 and Phi_2
@@ -151,6 +154,10 @@ shift_factor_3=-0.42/27.2114   # -0.52
 data_conv.scissor(Hvib, 0, shift_factor_1) # all SD state energies are lowered by -1.06 eV as a result of lowering energy of ZnPc's H state by -1.02 eV
 data_conv.scissor(Hvib, 2, shift_factor_2) # energies of  2 and 3 SD states are made larger by +0.4 eV as a result of getting the two extra states above ZnPc's L+1
 data_conv.scissor(Hvib, 4, shift_factor_3) # energies of SD states 4 and 5 (initial excitations) are lowered to get ZnPc's conductions below the DLG's extra states 
+
+# """  # to switch on and off the shifting/rescaling
+
+
 
 # Compute tNAC map
 opt = 2
